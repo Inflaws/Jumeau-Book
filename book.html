@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Язык Jumeau — Полное руководство (v0.2)</title>
+    <style>
+        :root {
+            --bg: #fdfdfd;
+            --text: #2c3e50;
+            --text-light: #64748b;
+            --accent: #e74c3c;
+            --accent-hover: #c0392b;
+            --surface: #ffffff;
+            --code-bg: #f8f9fa;
+            --border: #e2e8f0;
+            --sidebar-width: 260px;
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --spacing: 1.5rem;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: var(--font-main); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 16px; }
+        
+        /* Layout */
+        #sidebar {
+            position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh;
+            background: var(--surface); border-right: 1px solid var(--border);
+            padding: 1.5rem 0; overflow-y: auto; z-index: 20;
+        }
+        #sidebar h1 { font-size: 1.4rem; padding: 0 1.2rem 1rem; color: var(--accent); border-bottom: 2px solid var(--border); margin-bottom: 0.5rem; letter-spacing: 0.5px; }
+        #sidebar nav a { display: block; padding: 0.5rem 1.2rem; color: var(--text-light); text-decoration: none; font-size: 0.92rem; border-left: 3px solid transparent; transition: all 0.2s; }
+        #sidebar nav a:hover { color: var(--text); background: #f1f5f9; }
+        #sidebar nav a.active { color: var(--accent); border-left-color: var(--accent); background: #fef2f2; font-weight: 500; }
+        
+        #content { margin-left: var(--sidebar-width); padding: 2.5rem 3rem 5rem; max-width: 850px; }
+        
+        /* Typography */
+        h1 { font-size: 2.2rem; margin-bottom: 0.5rem; color: #111827; }
+        h2 { font-size: 1.6rem; margin: 2.5rem 0 1rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border); color: #1f2937; }
+        h3 { font-size: 1.25rem; margin: 1.8rem 0 0.8rem; color: #374151; }
+        p { margin-bottom: 1rem; }
+        ul, ol { margin: 0 0 1rem 1.5rem; }
+        li { margin-bottom: 0.4rem; }
+        strong { font-weight: 600; }
+        
+        /* Code Blocks */
+        pre { background: var(--code-bg); padding: 1.2rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; border: 1px solid var(--border); font-size: 0.9em; line-height: 1.5; }
+        code { font-family: var(--font-mono); font-size: 0.9em; background: #eef2ff; padding: 0.2em 0.4em; border-radius: 4px; color: #1e40af; }
+        pre code { background: transparent; padding: 0; color: inherit; }
+        
+        /* Syntax Highlighting Classes */
+        .kw { color: #c026d3; font-weight: 500; }
+        .fn { color: #2563eb; }
+        .str { color: #059669; }
+        .num { color: #ea580c; }
+        .bool { color: #d946ef; }
+        .op { color: #0891b2; font-weight: 600; }
+        .com { color: #6b7280; font-style: italic; }
+        
+        /* Info Boxes */
+        .note, .tip, .warn { padding: 1rem 1.2rem; border-radius: 6px; margin: 1.5rem 0; font-size: 0.95rem; }
+        .note { background: #eff6ff; border-left: 4px solid #3b82f6; }
+        .tip { background: #f0fdf4; border-left: 4px solid #22c55e; }
+        .warn { background: #fffbeb; border-left: 4px solid #f59e0b; }
+        .note strong, .tip strong, .warn strong { display: block; margin-bottom: 0.3rem; }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; background: var(--surface); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: #f8fafc; font-weight: 600; }
+        tr:last-child td { border-bottom: none; }
+        
+        /* Responsive */
+        @media (max-width: 850px) {
+            #sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            #sidebar.open { transform: translateX(0); }
+            #content { margin-left: 0; padding: 1.5rem; }
+            .menu-toggle { display: block; position: fixed; top: 1rem; left: 1rem; background: var(--accent); color: white; border: none; padding: 0.6rem; border-radius: 6px; cursor: pointer; z-index: 30; font-size: 1.1rem; }
+            #sidebar h1 { padding-left: 3.5rem; }
+        }
+        @media (min-width: 851px) { .menu-toggle { display: none; } }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰ Меню</button>
+    <aside id="sidebar">
+        <h1>📘 Jumeau Book</h1>
+        <nav id="toc">
+            <a href="#intro" class="active">Введение</a>
+            <a href="#setup">Установка и запуск</a>
+            <a href="#hello">Первая программа</a>
+            <a href="#types">Типы и значения</a>
+            <a href="#vars">Переменные и область видимости</a>
+            <a href="#expr">Выражения и операторы</a>
+            <a href="#control">Управляющие конструкции</a>
+            <a href="#funcs">Встроенные функции</a>
+            <a href="#examples">🧮 Практические примеры</a>
+            <a href="#best">Лучшие практики</a>
+            <a href="#roadmap">Что дальше?</a>
+        </nav>
+    </aside>
+
+    <main id="content">
+        <section id="intro">
+            <h1>Добро пожаловать в Jumeau</h1>
+            <p>Jumeau — это минималистичный, предсказуемый скриптовый язык, созданный с фокусом на ясность синтаксиса и контролируемую область видимости. Он подходит для быстрой автоматизации, прототипирования алгоритмов и изучения принципов построения языков без излишней магии.</p>
+            <p>В этой книге вы пройдёте путь от первой строки кода до уверенного использования переменных, условий, циклов и встроенных математических функций. Каждая глава содержит рабочие примеры, готовые к запуску в Jumeau v0.2.</p>
+            <div class="tip"><strong>Совет:</strong> Откройте редактор кода с поддержкой синтаксиса C или Lua — их подсветка хорошо ложится на Jumeau. Создайте файл <code>main.jm</code> и следуйте тексту.</div>
+        </section>
+
+        <section id="setup">
+            <h2>Установка и запуск</h2>
+            <p>Язык состоит из двух утилит: компилятора (<code>jumeauc</code>) и виртуальной машины (<code>jumeau</code>). Для сборки достаточно стандартного GCC или Clang.</p>
+            <pre><code><span class="com"># 1. Сборка инструментов</span>
+gcc jumeauc.c -o jumeauc
+gcc vm.c -lm -o jumeau
+
+<span class="com"># 2. Компиляция исходного кода в исполняемый файл</span>
+./jumeauc script.jm script.jc
+
+<span class="com"># 3. Запуск программы</span>
+./jumeau script.jc</code></pre>
+            <p>Расширение <code>.jm</code> используется для исходного кода, а <code>.jc</code> — для скомпилированного результата. Цепочка запуска всегда двухэтапная.</p>
+        </section>
+
+        <section id="hello">
+            <h2>Первая программа</h2>
+            <p>Создайте файл <code>hello.jm</code> и добавьте единственную строку:</p>
+            <pre><code><span class="fn">print</span>(<span class="str">"Привет, Jumeau!"</span>);</code></pre>
+            <p>Запустите цепочку компиляции. В консоли появится текст. Обратите внимание на ключевые правила синтаксиса:</p>
+            <ul>
+                <li>Каждая инструкция завершается точкой с запятой <code>;</code>.</li>
+                <li>Строки заключаются в двойные кавычки <code>"..."</code>.</li>
+                <li>Имена встроенных функций регистрозависимы (всё строчное).</li>
+            </ul>
+        </section>
+
+        <section id="types">
+            <h2>Типы и значения</h2>
+            <p>Jumeau — язык с динамической типизацией на этапе выполнения. Вам не нужно объявлять типы переменных явно: компилятор и ВМ определяют их автоматически.</p>
+            <table>
+                <tr><th>Тип</th><th>Описание</th><th>Пример</th></tr>
+                <tr><td><code>number</code></td><td>Число с плавающей точкой (64 бита)</td><td><code>42</code>, <code>3.14</code>, <code>-0.5</code></td></tr>
+                <tr><td><code>string</code></td><td>Последовательность символов</td><td><code>"текст"</code>, <code>"123"</code></td></tr>
+                <tr><td><code>bool</code></td><td>Логическое значение</td><td><code>true</code>, <code>false</code></td></tr>
+            </table>
+            <pre><code><span class="fn">print</span>(<span class="num">42</span>);
+<span class="fn">print</span>(<span class="num">3.1415</span>);
+<span class="fn">print</span>(<span class="bool">true</span>);
+<span class="fn">print</span>(<span class="str">"Jumeau v0.2"</span>);</code></pre>
+            <p>Функция <code>print</code> автоматически форматирует значения: числа выводятся без лишних нулей, логические значения печатаются как <code>true</code> или <code>false</code>, а строки выводятся как есть.</p>
+        </section>
+
+        <section id="vars">
+            <h2>Переменные и область видимости</h2>
+            <p>В Jumeau существует два способа объявления переменных, которые определяют, где они доступны и как долго живут.</p>
+            
+            <h3><code>var</code> — Глобальные переменные</h3>
+            <p>Создаются в глобальной области. Доступны из любого места программы после объявления. Существуют до завершения работы скрипта.</p>
+            <pre><code><span class="kw">var</span> message = <span class="str">"Я глобальная"</span>;
+<span class="fn">print</span>(message);</code></pre>
+
+            <h3><code>let</code> — Локальные переменные</h3>
+            <p>Привязываются к конкретному блоку <code>{ ... }</code>. При выходе из блока память автоматически освобождается, а имя перестаёт быть доступным.</p>
+            <pre><code><span class="kw">if</span> (<span class="bool">true</span>) {
+    <span class="kw">let</span> temp = <span class="num">99</span>;
+    <span class="fn">print</span>(temp); <span class="com">// Выведет 99</span>
+}
+<span class="com">// print(temp); // Ошибка: переменная не существует</span></code></pre>
+
+            <h3>Изменение значений</h3>
+            <p>Для перезаписи существующей переменной используйте обычный оператор <code>=</code>. Компилятор сам определит, глобальная это переменная или локальная.</p>
+            <pre><code><span class="kw">var</span> counter = <span class="num">0</span>;
+counter = counter + <span class="num">1</span>;
+<span class="fn">print</span>(counter); <span class="com">// 1</span>
+
+<span class="kw">let</span> x = <span class="num">5</span>;
+x = <span class="num">10</span>;
+<span class="fn">print</span>(x); <span class="com">// 10</span></code></pre>
+            <div class="note"><strong>Правило видимости:</strong> Если внутри блока объявить <code>let</code> с именем, совпадающим с внешней <code>var</code>, локальная переменная «затенит» глобальную только внутри этого блока.</div>
+        </section>
+
+        <section id="expr">
+            <h2>Выражения и операторы</h2>
+            <p>Язык поддерживает стандартный набор математических и логических операций. Приоритет соответствует математическому: умножение и деление выполняются раньше сложения и вычитания.</p>
+            <table>
+                <tr><th>Оператор</th><th>Назначение</th><th>Пример</th></tr>
+                <tr><td><code>+</code></td><td>Сложение чисел или конкатенация строк</td><td><code>2 + 3</code>, <code>"Hi" + "!"</code></td></tr>
+                <tr><td><code>-</code></td><td>Вычитание</td><td><code>10 - 4</code></td></tr>
+                <tr><td><code>*</code></td><td>Умножение</td><td><code>5 * 2.5</code></td></tr>
+                <tr><td><code>/</code></td><td>Деление</td><td><code>8 / 2</code></td></tr>
+                <tr><td><code>==</code></td><td>Проверка равенства (строгое)</td><td><code>"a" == "b"</code></td></tr>
+                <tr><td><code>&lt;</code></td><td>Меньше</td><td><code>3 &lt; 5</code></td></tr>
+                <tr><td><code>&gt;</code></td><td>Больше</td><td><code>10 &gt; 0</code></td></tr>
+            </table>
+            <pre><code><span class="kw">let</span> a = <span class="num">10</span> + <span class="num">2</span> * <span class="num">3</span>; <span class="com">// 16, сначала умножение</span>
+<span class="fn">print</span>(a);
+
+<span class="kw">let</span> b = (<span class="num">10</span> + <span class="num">2</span>) * <span class="num">3</span>; <span class="com">// 36, скобки меняют порядок</span>
+<span class="fn">print</span>(b);
+
+<span class="kw">let</span> msg = <span class="str">"Результат: "</span> + (<span class="num">5</span> * <span class="num">2</span>); <span class="com">// Конкатенация строки и числа</span>
+<span class="fn">print</span>(msg);</code></pre>
+            <p>Оператор <code>+</code> автоматически переключается в режим конкатенации, если хотя бы один операнд является строкой. Операторы сравнения всегда возвращают <code>true</code> или <code>false</code>.</p>
+        </section>
+
+        <section id="control">
+            <h2>Управляющие конструкции</h2>
+            <h3>Условный оператор <code>if</code></h3>
+            <p>Скобки вокруг условия опциональны. Поддерживаются цепочки <code>else if</code> и финальный <code>else</code>. Тело каждого блока обязательно заключается в <code>{}</code>.</p>
+            <pre><code><span class="kw">let</span> score = <span class="num">85</span>;
+
+<span class="kw">if</span> score >= <span class="num">90</span> {
+    <span class="fn">print</span>(<span class="str">"Отлично"</span>);
+} <span class="kw">else if</span> score >= <span class="num">70</span> {
+    <span class="fn">print</span>(<span class="str">"Хорошо"</span>);
+} <span class="kw">else</span> {
+    <span class="fn">print</span>(<span class="str">"Попробуйте ещё раз"</span>);
+}</code></pre>
+
+            <h3>Цикл <code>while</code></h3>
+            <p>Выполняет блок кода, пока условие истинно. Проверка происходит перед каждой итерацией.</p>
+            <pre><code><span class="kw">let</span> i = <span class="num">0</span>;
+<span class="kw">while</span> i &lt; <span class="num">3</span> {
+    <span class="fn">print</span>(<span class="str">"Итерация:"</span>, i);
+    i = i + <span class="num">1</span>;
+}</code></pre>
+            <div class="tip"><strong>Важно:</strong> Не забывайте обновлять переменную условия внутри цикла, иначе программа войдёт в бесконечный цикл. Jumeau не имеет встроенного оператора <code>break</code> в v0.2.</div>
+        </section>
+
+        <section id="funcs">
+            <h2>Встроенные функции</h2>
+            <p>В текущей версии пользовательские функции ещё не реализованы. Язык поставляется с набором нативных функций, зарегистрированных в глобальной области при запуске.</p>
+            
+            <h3><code>print(arg1, arg2, ...)</code></h3>
+            <p>Выводит переданные аргументы в консоль, разделяя их пробелом. В конце автоматически добавляется перенос строки.</p>
+            <pre><code><span class="fn">print</span>(<span class="str">"X ="</span>, <span class="num">10</span>, <span class="str">"Y ="</span>, <span class="num">20</span>); <span class="com">// X = 10 Y = 20</span></code></pre>
+
+            <h3>Математические функции</h3>
+            <p>Работают с числами и возвращают число. Аргументы передаются в радианах.</p>
+            <pre><code><span class="kw">let</span> angle = <span class="num">1.5708</span>; <span class="com">// ~ π/2</span>
+<span class="fn">print</span>(<span class="str">"sin:"</span>, <span class="fn">sin</span>(angle));
+<span class="fn">print</span>(<span class="str">"cos:"</span>, <span class="fn">cos</span>(angle));
+<span class="fn">print</span>(<span class="str">"sqrt:"</span>, <span class="fn">sqrt</span>(<span class="num">16</span>));</code></pre>
+            <p>Функции можно комбинировать в выражениях и присваивать результаты переменным. Если передать неверный тип (например, строку вместо числа), функция вернёт <code>nil</code> (пустое значение).</p>
+        </section>
+
+        <section id="examples">
+            <h2>🧮 Практические примеры: математика и алгоритмы</h2>
+            <p>В этом разделе собраны рабочие примеры, демонстрирующие возможности Jumeau для реальных вычислений. Все примеры готовы к запуску — скопируйте код в файл <code>.jm</code> и выполните цепочку компиляции.</p>
+
+            <h3>📐 Геометрия: площадь и периметр фигур</h3>
+            <pre><code><span class="com">// Площадь круга: S = π * r²</span>
+<span class="kw">var</span> pi = <span class="num">3.14159265</span>;
+<span class="kw">let</span> radius = <span class="num">5</span>;
+<span class="kw">let</span> area = pi * radius * radius;
+<span class="fn">print</span>(<span class="str">"Площадь круга:"</span>, area);
+
+<span class="com">// Периметр прямоугольника: P = 2 * (a + b)</span>
+<span class="kw">let</span> a = <span class="num">10</span>;
+<span class="kw">let</span> b = <span class="num">7</span>;
+<span class="kw">let</span> perimeter = <span class="num">2</span> * (a + b);
+<span class="fn">print</span>(<span class="str">"Периметр:"</span>, perimeter);
+
+<span class="com">// Теорема Пифагора: c = √(a² + b²)</span>
+<span class="kw">let</span> c = <span class="fn">sqrt</span>(a * a + b * b);
+<span class="fn">print</span>(<span class="str">"Гипотенуза:"</span>, c);</code></pre>
+
+            <h3>🔁 Факториал числа (цикл while)</h3>
+            <pre><code><span class="kw">var</span> n = <span class="num">6</span>;
+<span class="kw">var</span> factorial = <span class="num">1</span>;
+<span class="kw">let</span> i = <span class="num">1</span>;
+
+<span class="kw">while</span> i &lt;= n {
+    factorial = factorial * i;
+    i = i + <span class="num">1</span>;
+}
+
+<span class="fn">print</span>(n, <span class="str">"! ="</span>, factorial); <span class="com">// 6! = 720</span></code></pre>
+
+            <h3>🔢 Числа Фибоначчи (первые 10)</h3>
+            <pre><code><span class="kw">var</span> count = <span class="num">10</span>;
+<span class="kw">var</span> a = <span class="num">0</span>;
+<span class="kw">var</span> b = <span class="num">1</span>;
+<span class="kw">let</span> i = <span class="num">0</span>;
+
+<span class="kw">while</span> i &lt; count {
+    <span class="fn">print</span>(a);
+    <span class="kw">let</span> next = a + b;
+    a = b;
+    b = next;
+    i = i + <span class="num">1</span>;
+}</code></pre>
+            <p><strong>Вывод:</strong> <code>0 1 1 2 3 5 8 13 21 34</code></p>
+
+            <h3>✅ Проверка на простое число</h3>
+            <pre><code><span class="kw">var</span> num = <span class="num">29</span>;
+<span class="kw">var</span> is_prime = <span class="bool">true</span>;
+
+<span class="kw">if</span> num &lt; <span class="num">2</span> {
+    is_prime = <span class="bool">false</span>;
+} <span class="kw">else</span> {
+    <span class="kw">let</span> divisor = <span class="num">2</span>;
+    <span class="kw">while</span> divisor * divisor &lt;= num {
+        <span class="kw">if</span> num % divisor == <span class="num">0</span> {
+            is_prime = <span class="bool">false</span>;
+        }
+        divisor = divisor + <span class="num">1</span>;
+    }
+}
+
+<span class="kw">if</span> is_prime {
+    <span class="fn">print</span>(num, <span class="str">"— простое число"</span>);
+} <span class="kw">else</span> {
+    <span class="fn">print</span>(num, <span class="str">"— составное число"</span>);
+}</code></pre>
+            <div class="note"><strong>Примечание:</strong> В Jumeau v0.2 оператор <code>%</code> (остаток от деления) пока не реализован. Для проверки делимости используйте: <code>num / divisor * divisor == num</code>.</div>
+
+            <h3>🌡️ Конвертер температур</h3>
+            <pre><code><span class="com">// Цельсий → Фаренгейт: F = C * 9/5 + 32</span>
+<span class="kw">var</span> celsius = <span class="num">25</span>;
+<span class="kw">let</span> fahrenheit = celsius * <span class="num">9</span> / <span class="num">5</span> + <span class="num">32</span>;
+<span class="fn">print</span>(celsius, <span class="str">"°C ="</span>, fahrenheit, <span class="str">"°F"</span>);
+
+<span class="com">// Фаренгейт → Цельсий: C = (F - 32) * 5/9</span>
+<span class="kw">var</span> f_input = <span class="num">98.6</span>;
+<span class="kw">let</span> c_result = (f_input - <span class="num">32</span>) * <span class="num">5</span> / <span class="num">9</span>;
+<span class="fn">print</span>(f_input, <span class="str">"°F ="</span>, c_result, <span class="str">"°C"</span>);</code></pre>
+
+            <h3>📈 Сложные проценты (финансовый расчёт)</h3>
+            <pre><code><span class="com">// Формула: A = P * (1 + r/n)^(n*t)</span>
+<span class="kw">var</span> principal = <span class="num">1000</span>;   <span class="com">// Начальная сумма</span>
+<span class="kw">var</span> rate = <span class="num">0.05</span>;        <span class="com">// Годовая ставка 5%</span>
+<span class="kw">var</span> years = <span class="num">10</span>;         <span class="com">// Срок в годах</span>
+<span class="kw">var</span> compounds = <span class="num">12</span>;     <span class="com">// Начислений в год (ежемесячно)</span>
+
+<span class="kw">let</span> base = <span class="num">1</span> + rate / compounds;
+<span class="kw">let</span> exponent = compounds * years;
+<span class="kw">let</span> multiplier = <span class="num">1</span>;
+<span class="kw">let</span> e = <span class="num">0</span>;
+
+<span class="kw">while</span> e &lt; exponent {
+    multiplier = multiplier * base;
+    e = e + <span class="num">1</span>;
+}
+
+<span class="kw">let</span> final_amount = principal * multiplier;
+<span class="fn">print</span>(<span class="str">"Итоговая сумма:"</span>, final_amount);</code></pre>
+
+            <h3>🔬 Физика: свободное падение</h3>
+            <pre><code><span class="com">// Расстояние: s = (g * t²) / 2, где g ≈ 9.81 м/с²</span>
+<span class="kw">var</span> g = <span class="num">9.81</span>;
+<span class="kw">var</span> time = <span class="num">3</span>;  <span class="com">// секунды</span>
+
+<span class="kw">let</span> distance = g * time * time / <span class="num">2</span>;
+<span class="fn">print</span>(<span class="str">"За"</span>, time, <span class="str">"сек объект пролетит"</span>, distance, <span class="str">"метров"</span>);
+
+<span class="com">// Скорость в момент t: v = g * t</span>
+<span class="kw">let</span> velocity = g * time;
+<span class="fn">print</span>(<span class="str">"Скорость:"</span>, velocity, <span class="str">"м/с"</span>);</code></pre>
+
+            <h3>🎯 Поиск максимума в последовательности</h3>
+            <pre><code><span class="com">// Имитация ввода: массив значений "зашит" в код</span>
+<span class="kw">var</span> values = <span class="num">0</span>;  <span class="com">// Счётчик обработанных</span>
+<span class="kw">var</span> max_val = -<span class="num">999999</span>;
+<span class="kw">var</span> total = <span class="num">5</span>;  <span class="com">// Количество элементов</span>
+
+<span class="com">// Элементы последовательности (в реальном проекте — из файла/ввода)</span>
+<span class="kw">var</span> v1 = <span class="num">12</span>;
+<span class="kw">var</span> v2 = <span class="num">45</span>;
+<span class="kw">var</span> v3 = <span class="num">8</span>;
+<span class="kw">var</span> v4 = <span class="num">67</span>;
+<span class="kw">var</span> v5 = <span class="num">23</span>;
+
+<span class="kw">while</span> values &lt; total {
+    <span class="kw">let</span> current = <span class="num">0</span>;
+    <span class="kw">if</span> values == <span class="num">0</span> { current = v1; }
+    <span class="kw">else if</span> values == <span class="num">1</span> { current = v2; }
+    <span class="kw">else if</span> values == <span class="num">2</span> { current = v3; }
+    <span class="kw">else if</span> values == <span class="num">3</span> { current = v4; }
+    <span class="kw">else</span> { current = v5; }
+    
+    <span class="kw">if</span> current &gt; max_val {
+        max_val = current;
+    }
+    values = values + <span class="num">1</span>;
+}
+
+<span class="fn">print</span>(<span class="str">"Максимум:"</span>, max_val);</code></pre>
+
+            <h3>🔁 Тригонометрическая таблица (0°–90° с шагом 15°)</h3>
+            <pre><code><span class="kw">var</span> deg = <span class="num">0</span>;
+<span class="kw">var</span> pi = <span class="num">3.14159265</span>;
+
+<span class="kw">while</span> deg &lt;= <span class="num">90</span> {
+    <span class="kw">let</span> rad = deg * pi / <span class="num">180</span>;
+    <span class="kw">let</span> s = <span class="fn">sin</span>(rad);
+    <span class="kw">let</span> c = <span class="fn">cos</span>(rad);
+    <span class="fn">print</span>(deg, <span class="str">"° → sin:"</span>, s, <span class="str">"cos:"</span>, c);
+    deg = deg + <span class="num">15</span>;
+}</code></pre>
+            <p><strong>Вывод (фрагмент):</strong><br>
+            <code>0° → sin:0 cos:1</code><br>
+            <code>15° → sin:0.258819 cos:0.965926</code><br>
+            <code>…</code><br>
+            <code>90° → sin:1 cos:6.123e-17</code></p>
+
+            <div class="tip"><strong>Совет по отладке:</strong> Если результат вычисления кажется неверным, разбейте сложное выражение на несколько <code>let</code>-переменных и выводите промежуточные значения через <code>print</code>. Это поможет локализовать ошибку.</div>
+        </section>
+
+        <section id="best">
+            <h2>Лучшие практики</h2>
+            <p>Чтобы ваш код на Jumeau был быстрым, читаемым и устойчивым к ошибкам, придерживайтесь следующих рекомендаций:</p>
+            <ul>
+                <li><strong>Используйте <code>let</code> для временных данных.</strong> Локальные переменные автоматически освобождают ресурсы при выходе из блока, что снижает нагрузку на систему.</li>
+                <li><strong>Разбивайте сложные выражения.</strong> Очень длинные цепочки операций в одной строке могут превысить лимит временных регистров. Разделяйте вычисления на несколько шагов с помощью <code>let</code>.</li>
+                <li><strong>Явно закрывайте блоки.</strong> Каждая <code>{</code> должна иметь соответствующую <code>}</code>. Отсутствие закрывающей скобки вызовет ошибку парсера.</li>
+                <li><strong>Следите за точкой с запятой.</strong> Компилятор ожидает <code>;</code> после каждого объявления и присваивания. Пропуск приведёт к ошибке компиляции.</li>
+                <li><strong>Избегайте смешивания типов в арифметике.</strong> Операторы <code>-</code>, <code>*</code>, <code>/</code> работают только с числами. Попытка вычесть строку вызовет ошибку выполнения.</li>
+                <li><strong>Комментируйте сложные алгоритмы.</strong> Хотя v0.2 не поддерживает синтаксические комментарии, вы можете использовать строки-заглушки: <code>var _comment = "здесь описание";</code> — они не повлияют на логику.</li>
+            </ul>
+            <div class="warn"><strong>Ограничения v0.2:</strong> В языке пока нет поддержки комментариев, массивов, пользовательских функций, цикла <code>for</code> и оператора <code>%</code>. Код, зависящий от этих возможностей, потребуется переписать на будущих версиях.</div>
+        </section>
+
+        <section id="roadmap">
+            <h2>Что дальше?</h2>
+            <p>Jumeau активно развивается. Текущая версия закладывает фундамент: стабильный парсер, эффективное управление памятью блоков и понятную семантику. Вот куда движется язык:</p>
+            <ul>
+                <li><code>v0.3</code> — Пользовательские функции с аргументами и возвращаемыми значениями.</li>
+                <li><code>v0.4</code> — Цикл <code>for</code>, операторы <code>break</code> и <code>continue</code>.</li>
+                <li><code>v0.5</code> — Одномерные массивы и базовый сборщик мусора (GC).</li>
+                <li><code>v1.0</code> — Поддержка комментариев, расширенный стандартный ввод/вывод, модульная система.</li>
+            </ul>
+            <p>Продолжайте экспериментировать с <code>while</code>, <code>if</code> и математическими функциями. Попробуйте реализовать простые алгоритмы: вычисление факториала, поиск максимального числа в последовательности или конвертацию температур. Каждый запуск <code>jumeau script.jc</code> приближает вас к мастерству.</p>
+            <p style="margin-top: 2rem; font-style: italic; color: var(--text-light); text-align: center;">Спасибо, что читаете. Код — это поэзия логики. Пишите её красиво.</p>
+        </section>
+    </main>
+
+    <script>
+        // Scroll Spy for Active Navigation
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('#toc a');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => link.classList.remove('active'));
+                        const activeLink = document.querySelector(`#toc a[href="#${entry.target.id}"]`);
+                        if (activeLink) activeLink.classList.add('active');
+                    }
+                });
+            }, { rootMargin: '-20% 0px -60% 0px' });
+            
+            sections.forEach(sec => observer.observe(sec));
+        });
+    </script>
+</body>
+</html>
